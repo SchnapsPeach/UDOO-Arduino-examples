@@ -14,9 +14,14 @@ UDOO-Arduino-examples
 
 ### Arduino Projects
 
-<pre>
-make compile    // builds the project
-make upload     // builds the project an uploads it to arduino
-make monitor    // opens a minicom session on the predefined port (minicom must be installed)
-make test       // builds the project, uploads is to arduino and start the minicom session ;)
-</pre>
+<dl>
+  <dt>make compile</dt>
+  <dd>Builds the project.</dd>
+
+  <dt>make upload</dt>
+  <dd>builds the project an uploads it to arduino</dd>
+  <dt>make monitor</dt>
+  <dd>opens a minicom session on the predefined port (minicom must be installed)</dd>
+  <dt>make test</dt>
+  <dd>builds the project, uploads is to arduino and starts the minicom session ;)</dd>
+</dl>
