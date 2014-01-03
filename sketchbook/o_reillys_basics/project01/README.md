@@ -1,7 +1,8 @@
-= Project 01 =
-=== Lections from "Die elektronische Welt mit Arduino entdecken" by Erik Bartmann ===
+# Project 01 
 
-== circuit diagram ==
+##### Lections from "Die elektronische Welt mit Arduino entdecken" by Erik Bartmann 
+
+### circuit diagram 
 
 <pre>
 ---------------- 				 			   	
