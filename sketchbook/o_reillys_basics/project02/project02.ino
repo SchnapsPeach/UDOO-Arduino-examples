@@ -66,6 +66,8 @@ void setup() {
 	pinMode(ledPin, OUTPUT);
 	/* configure buttonPin to input */
 	pinMode(buttonPin, INPUT);
+	/* activate the internal pull up resistor */
+	digitalWrite(buttonPin, HIGH);
 }
 
 void loop() {
@@ -73,7 +75,7 @@ void loop() {
 	buttonState = digitalRead(buttonPin);
 
 	/* if the button is pressed ... */
-	if (HIGH == buttonState) {
+	if (LOW == buttonState) {
 		/* ... turn the LED on */
 		digitalWrite(ledPin, HIGH);
 	} else {
