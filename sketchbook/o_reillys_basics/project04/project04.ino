@@ -54,30 +54,20 @@ int main( void )
 	return 0;
 }
 
-/* define pin for LED, which blinks  */
-int ledPinBlink = 13;
-/* define pin for LED, which is controlled by the button */
-int ledPinButton = 10;
+/* define pin for LED  */
+int ledPin = 8;
 /* define pin for button */
-int buttonPin = 8;
+int buttonPin = 2;
 /* button state to be saved in */
-int buttonState; 
+int buttonState = 0; 
 /* previous button state */
 int prevButtonState;
-/* interval 2 sec */
-int interval = 2000;
-/* time of previous toggle */
-int prev;
-/* status of the blinking LED */
-int ledBlinkState = LOW;
-/* status of the button LED */
-int ledButtonState = LOW;
+/* counter, counts the button pushes */
+int counter = 0;
 
 void setup() {
-	/* configure ledPinBlink as  output */
-	pinMode(ledPinBlink, OUTPUT);
-	/* configure ledPinButton as  output */
-	pinMode(ledPinButton, OUTPUT);
+	/* configure ledPin as  output */
+	pinMode(ledPin, OUTPUT);
 	/* configure buttonPin as input */
 	pinMode(buttonPin, INPUT);
 	/* activate the internal pull up resistor */
@@ -86,33 +76,28 @@ void setup() {
 }
 
 void loop() {
-	/* compare the time, which has passed since the last toggle
-	 * with the interval time. If the interval was reached...
-	 */
-	if ((millis() - prev) > interval) {
-		/* ... reset the time since the last interval to now */
-		prev = millis();
-		/* invert the actual LED status */
-		ledBlinkState = !ledBlinkState;
-		/* and write the new status */
-		digitalWrite(ledPinBlink, ledBlinkState);
-	}
-
 	/* read the button state */
 	buttonState = digitalRead(buttonPin);
 
 	/* if button state changed */
 	if (prevButtonState != buttonState) {
-		/* if the button is pressed ... */
+		/* and if button is pushed */
 		if (LOW == buttonState) {
-			/* ... toggle the LED */
-			ledButtonState = !ledButtonState;
-			digitalWrite(ledPinButton, ledButtonState);
+			/* increment counter */
+			counter++;
 		}
 	}
 	/* remember previous state */
 	prevButtonState = buttonState;
-	/* delay for 1ms before reading another value */	
-	delay(1);
+	
+
+	/* if the counter is even turn the LED on */
+	if (0 == (counter % 2)) {
+		digitalWrite(ledPin, HIGH);
+	} else {
+		digitalWrite(ledPin, LOW);
+	}
+	/* wait 10ms */
+	delay(10);
 }
 
