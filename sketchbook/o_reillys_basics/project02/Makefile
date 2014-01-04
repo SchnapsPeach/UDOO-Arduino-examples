@@ -85,12 +85,13 @@ COREOBJS:=$(addsuffix .o,$(COREOBJS))
 
 # library sources: all sources from home folder and arduino folder, but only the SAM source
 ARDUINOLIBSRC:=$(shell find $(HOMELIBS) -name *.cpp) $(shell find $(ARDLIBS) -not -path "*/arch/avr/*" -a -name *.cpp)
-# this 4 libs are not yet supportet for arduino due, so we have to exclude them to prevent compiling errors
+# this libs are not yet supportet for arduino due, so we have to exclude them to prevent compiling errors
 ARDUINOLIBSRC:=$(patsubst /opt/arduino-1.5.4/libraries/TFT/%,,$(ARDUINOLIBSRC))
 ARDUINOLIBSRC:=$(patsubst /opt/arduino-1.5.4/libraries/Esplora/%,,$(ARDUINOLIBSRC))
 ARDUINOLIBSRC:=$(patsubst /opt/arduino-1.5.4/libraries/Robot_Motor/%,,$(ARDUINOLIBSRC))
 ARDUINOLIBSRC:=$(patsubst /opt/arduino-1.5.4/libraries/RobotIRremote/%,,$(ARDUINOLIBSRC))
 ARDUINOLIBSRC:=$(patsubst /opt/arduino-1.5.4/libraries/SpacebrewYun/%,,$(ARDUINOLIBSRC))
+ARDUINOLIBSRC:=$(patsubst /opt/arduino-1.5.4/libraries/Bridge/%,,$(ARDUINOLIBSRC))
 # library object list
 ARDUINOOBJS:=$(addprefix $(TMPDIR)/libraries/,$(notdir $(ARDUINOLIBSRC)) )
 ARDUINOOBJS:=$(addsuffix .o,$(ARDUINOOBJS))
