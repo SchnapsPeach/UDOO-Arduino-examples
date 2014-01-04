@@ -24,7 +24,7 @@ BOSSA_PORT:=ttymxc3
 PORT:=/dev/$(BOSSA_PORT)
 #if we want to verify the bossac upload, define this to -v
 VERIFY:=-v
-
+HOMELIBS:=/home/olga/Arduino/libraries
 
 #then some general settings. They should not be necessary to modify.
 CXX:=$(ADIR)/tools/arm-none-eabi/bin/arm-none-eabi-g++
@@ -36,12 +36,13 @@ LIBSAM:=arduino/sam/system/libsam
 TMPDIR:=$(PWD)/build
 AR:=$(ADIR)/tools/arm-none-eabi/bin/arm-none-eabi-ar 
 
+MYLIBS:= $(HOMELIBS)/Bounce/Bounce.cpp
 
 #all these values are hard coded and should maybe be configured somehow else,
 #like olikraus does in his makefile.
 DEFINES:=-Dprintf=iprintf -DF_CPU=84000000L -DARDUINO=152 -D__SAM3X8E__ -DUSB_PID=0x003e -DUSB_VID=0x2341 -DUSBCON
 
-INCLUDES:=-I$(ADIR)/$(LIBSAM) -I$(ADIR)/$(CMSIS)/CMSIS/Include/ -I$(ADIR)/$(CMSIS)/Device/ATMEL/ -I$(ADIR)/$(SAM)/cores/arduino -I$(ADIR)/$(SAM)/variants/arduino_due_x
+INCLUDES:=-I$(ADIR)/$(LIBSAM) -I$(ADIR)/$(CMSIS)/CMSIS/Include/ -I$(ADIR)/$(CMSIS)/Device/ATMEL/ -I$(ADIR)/$(SAM)/cores/arduino -I$(ADIR)/$(SAM)/variants/arduino_due_x -I$(HOMELIBS)/
 
 #also include the current dir for convenience
 INCLUDES += -Iinclude
@@ -59,7 +60,7 @@ PROJNAME:=$(shell basename *.ino .ino)
 NEWMAINFILE:=$(TMPDIR)/$(PROJNAME).ino.cpp
 
 #our own sourcefiles is the (converted) ino file and any local cpp files
-MYSRCFILES:=$(NEWMAINFILE) $(shell ls *.cpp 2>/dev/null)
+MYSRCFILES:=$(NEWMAINFILE) $(shell ls *.cpp 2>/dev/null) $(MYLIBS)
 MYOBJFILES:=$(addsuffix .o,$(addprefix $(TMPDIR)/,$(notdir $(MYSRCFILES))))
 
 #These source files are the ones forming core.a

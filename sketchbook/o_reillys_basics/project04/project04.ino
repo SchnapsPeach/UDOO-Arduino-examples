@@ -18,6 +18,7 @@
 
 #define ARDUINO_MAIN
 #include "Arduino.h"
+#include <Bounce/Bounce.h>
 
 /*
  * Cortex-M3 Systick IT handler
@@ -64,6 +65,12 @@ int buttonState = 0;
 int prevButtonState;
 /* counter, counts the button pushes */
 int counter = 0;
+/* time to wait 10ms */
+int ttw = 10;
+/* Bounce Object
+ * alternate code with bounce librarie
+Bounce bounce = Bounce();
+*/
 
 void setup() {
 	/* configure ledPin as  output */
@@ -72,7 +79,12 @@ void setup() {
 	pinMode(buttonPin, INPUT);
 	/* activate the internal pull up resistor */
 	digitalWrite(buttonPin, HIGH);
-	/* initialize last time toggelt */
+	
+	/*
+ 	 * alternate code with bounce librarie
+	bounce.attach(buttonPin);
+	bounce.interval(ttw);
+	 */
 }
 
 void loop() {
@@ -99,5 +111,17 @@ void loop() {
 	}
 	/* wait 10ms */
 	delay(10);
+
+	/*
+ 	 * alternate code with bounce librarie
+	bounce.update();
+	buttonState = bounce.read();
+
+	if (LOW == buttonState) {
+		digitalWrite(ledPin, HIGH);
+	} else {
+		digitalWrite(ledPin, LOW);
+	}	
+	*/
 }
 
