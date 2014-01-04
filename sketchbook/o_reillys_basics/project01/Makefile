@@ -18,30 +18,41 @@
 
 #user specific settings:
 #where to find the IDE
-ADIR:=/opt/arduino-1.5.4/hardware
+ARDDIR:=/opt/arduino-1.5.4
+ADIR:=$(ARDDIR)/hardware
 # port name for bossa (predefined port on UDOO)
 BOSSA_PORT:=ttymxc3
 PORT:=/dev/$(BOSSA_PORT)
 #if we want to verify the bossac upload, define this to -v
 VERIFY:=-v
 
-
 #then some general settings. They should not be necessary to modify.
 CXX:=$(ADIR)/tools/arm-none-eabi/bin/arm-none-eabi-g++
 CC:=$(ADIR)/tools/arm-none-eabi/bin/arm-none-eabi-gcc
 C:=$(CC)
-SAM:=arduino/sam/
-CMSIS:=arduino/sam/system/CMSIS/
+SAM:=arduino/sam
+CMSIS:=arduino/sam/system/CMSIS
 LIBSAM:=arduino/sam/system/libsam
 TMPDIR:=$(PWD)/build
 AR:=$(ADIR)/tools/arm-none-eabi/bin/arm-none-eabi-ar 
+
+# external libraries 
+# libraries in th home folder
+HOMELIBS:=/home/olga/Arduino/libraries
+# libraries in the arduino folder
+ARDLIBS:=$(ARDDIR)/libraries
+# include path of all libraries from the arduino folder
+ARDLIBINC:=$(addprefix -I,$(addsuffix src,$(shell ls -d $(ARDLIBS)/*/))) $(addprefix -I,$(addsuffix arch/sam,$(shell ls -d $(ARDLIBS)/*/))) $(addprefix -I,$(shell ls -d $(ADIR)/$(SAM)/libraries/*/))
+EXTLIBINC:=$(addprefix -I,$(shell ls -d $(HOMELIBS)/*/))
+# all library includes for arduino (libs in home folder and libs in arduino folder)
+ARDUINOLIBINC:=$(ARDLIBINC) $(EXTLIBINC)
 
 
 #all these values are hard coded and should maybe be configured somehow else,
 #like olikraus does in his makefile.
 DEFINES:=-Dprintf=iprintf -DF_CPU=84000000L -DARDUINO=152 -D__SAM3X8E__ -DUSB_PID=0x003e -DUSB_VID=0x2341 -DUSBCON
 
-INCLUDES:=-I$(ADIR)/$(LIBSAM) -I$(ADIR)/$(CMSIS)/CMSIS/Include/ -I$(ADIR)/$(CMSIS)/Device/ATMEL/ -I$(ADIR)/$(SAM)/cores/arduino -I$(ADIR)/$(SAM)/variants/arduino_due_x
+INCLUDES:=-I$(ADIR)/$(LIBSAM) -I$(ADIR)/$(CMSIS)/CMSIS/Include/ -I$(ADIR)/$(CMSIS)/Device/ATMEL/ -I$(ADIR)/$(SAM)/cores/arduino -I$(ADIR)/$(SAM)/variants/arduino_due_x $(ARDUINOLIBINC)
 
 #also include the current dir for convenience
 INCLUDES += -Iinclude
@@ -59,7 +70,7 @@ PROJNAME:=$(shell basename *.ino .ino)
 NEWMAINFILE:=$(TMPDIR)/$(PROJNAME).ino.cpp
 
 #our own sourcefiles is the (converted) ino file and any local cpp files
-MYSRCFILES:=$(NEWMAINFILE) $(shell ls *.cpp 2>/dev/null)
+MYSRCFILES:=$(NEWMAINFILE) $(shell ls *.cpp 2>/dev/null) $(LIBSRC)
 MYOBJFILES:=$(addsuffix .o,$(addprefix $(TMPDIR)/,$(notdir $(MYSRCFILES))))
 
 #These source files are the ones forming core.a
@@ -71,6 +82,18 @@ COREOBJSXX:=$(addprefix $(TMPDIR)/core/,$(notdir $(CORESRCXX)) )
 COREOBJSXX:=$(addsuffix .o,$(COREOBJSXX))
 COREOBJS:=$(addprefix $(TMPDIR)/core/,$(notdir $(CORESRC)) )
 COREOBJS:=$(addsuffix .o,$(COREOBJS))
+
+# library sources: all sources from home folder and arduino folder, but only the SAM source
+ARDUINOLIBSRC:=$(shell find $(HOMELIBS) -name *.cpp) $(shell find $(ARDLIBS) -not -path "*/arch/avr/*" -a -name *.cpp)
+# this 4 libs are not yet supportet for arduino due, so we have to exclude them to prevent compiling errors
+ARDUINOLIBSRC:=$(patsubst /opt/arduino-1.5.4/libraries/TFT/%,,$(ARDUINOLIBSRC))
+ARDUINOLIBSRC:=$(patsubst /opt/arduino-1.5.4/libraries/Esplora/%,,$(ARDUINOLIBSRC))
+ARDUINOLIBSRC:=$(patsubst /opt/arduino-1.5.4/libraries/Robot_Motor/%,,$(ARDUINOLIBSRC))
+ARDUINOLIBSRC:=$(patsubst /opt/arduino-1.5.4/libraries/RobotIRremote/%,,$(ARDUINOLIBSRC))
+ARDUINOLIBSRC:=$(patsubst /opt/arduino-1.5.4/libraries/SpacebrewYun/%,,$(ARDUINOLIBSRC))
+# library object list
+ARDUINOOBJS:=$(addprefix $(TMPDIR)/libraries/,$(notdir $(ARDUINOLIBSRC)) )
+ARDUINOOBJS:=$(addsuffix .o,$(ARDUINOOBJS))
 
 default:
 	@echo default rule, does nothing. Try make compile or make upload.
@@ -92,6 +115,9 @@ $(foreach src,$(CORESRCXX), $(eval $(call OBJ_template,$(src),$(addsuffix .o,$(a
 #...and for c sources:
 $(foreach src,$(CORESRC), $(eval $(call OBJ_template,$(src),$(addsuffix .o,$(addprefix $(TMPDIR)/core/,$(notdir $(src)))),) ) )
 
+# and the library sources
+$(foreach src,$(ARDUINOLIBSRC), $(eval $(call OBJ_template,$(src),$(addsuffix .o,$(addprefix $(TMPDIR)/libraries/,$(notdir $(src)))),) ) )
+
 #and our own c++ sources
 $(foreach src,$(MYSRCFILES), $(eval $(call OBJ_template,$(src),$(addsuffix .o,$(addprefix $(TMPDIR)/,$(notdir $(src)))),XX) ) )
 
@@ -107,6 +133,9 @@ $(TMPDIR):
 $(TMPDIR)/core:
 	mkdir -p $(TMPDIR)/core
 
+$(TMPDIR)/libraries:
+	mkdir -p $(TMPDIR)/libraries
+
 #creates the cpp file from the .ino file
 $(NEWMAINFILE): $(PROJNAME).ino
 	#cat $(ADIR)/arduino/sam/cores/arduino/main.cpp > $(NEWMAINFILE)
@@ -116,42 +145,19 @@ $(NEWMAINFILE): $(PROJNAME).ino
 #include the dependencies for our own files
 -include $(MYOBJFILES:.o=.d)
 
-#create the core library from the core objects. Do this EXACTLY as the
-#arduino IDE does it, seems *really* picky about this.
-#Sorry for the hard coding.
+#create the core library from the core objects. 
 $(TMPDIR)/core.a: $(TMPDIR)/core $(COREOBJS) $(COREOBJSXX)
-	$(AR) rcs $(TMPDIR)/core.a $(TMPDIR)/core/wiring_shift.c.o 
-	$(AR) rcs $(TMPDIR)/core.a $(TMPDIR)/core/wiring_analog.c.o 
-	$(AR) rcs $(TMPDIR)/core.a $(TMPDIR)/core/itoa.c.o 
-	$(AR) rcs $(TMPDIR)/core.a $(TMPDIR)/core/cortex_handlers.c.o 
-	$(AR) rcs $(TMPDIR)/core.a $(TMPDIR)/core/hooks.c.o 
-	$(AR) rcs $(TMPDIR)/core.a $(TMPDIR)/core/wiring.c.o 
-	$(AR) rcs $(TMPDIR)/core.a $(TMPDIR)/core/WInterrupts.c.o 
-	$(AR) rcs $(TMPDIR)/core.a $(TMPDIR)/core/syscalls_sam3.c.o 
-	$(AR) rcs $(TMPDIR)/core.a $(TMPDIR)/core/iar_calls_sam3.c.o 
-	$(AR) rcs $(TMPDIR)/core.a $(TMPDIR)/core/wiring_digital.c.o 
-	$(AR) rcs $(TMPDIR)/core.a $(TMPDIR)/core/Print.cpp.o 
-	$(AR) rcs $(TMPDIR)/core.a $(TMPDIR)/core/USARTClass.cpp.o 
-	$(AR) rcs $(TMPDIR)/core.a $(TMPDIR)/core/WString.cpp.o 
-	$(AR) rcs $(TMPDIR)/core.a $(TMPDIR)/core/USBCore.cpp.o 
-	$(AR) rcs $(TMPDIR)/core.a $(TMPDIR)/core/CDC.cpp.o 
-	$(AR) rcs $(TMPDIR)/core.a $(TMPDIR)/core/HID.cpp.o 
-	$(AR) rcs $(TMPDIR)/core.a $(TMPDIR)/core/wiring_pulse.cpp.o 
-	$(AR) rcs $(TMPDIR)/core.a $(TMPDIR)/core/UARTClass.cpp.o 
-	$(AR) rcs $(TMPDIR)/core.a $(TMPDIR)/core/main.cpp.o 
-	$(AR) rcs $(TMPDIR)/core.a $(TMPDIR)/core/cxxabi-compat.cpp.o 
-	$(AR) rcs $(TMPDIR)/core.a $(TMPDIR)/core/Stream.cpp.o 
-	$(AR) rcs $(TMPDIR)/core.a $(TMPDIR)/core/RingBuffer.cpp.o 
-	$(AR) rcs $(TMPDIR)/core.a $(TMPDIR)/core/IPAddress.cpp.o 
-	$(AR) rcs $(TMPDIR)/core.a $(TMPDIR)/core/Reset.cpp.o 
-	$(AR) rcs $(TMPDIR)/core.a $(TMPDIR)/core/WMath.cpp.o 
-	$(AR) rcs $(TMPDIR)/core.a $(TMPDIR)/core/variant.cpp.o
+	$(AR) rcs $(TMPDIR)/core.a $(COREOBJS) $(COREOBJSXX) 
 
-#link our own object files with core to form the elf file
-$(TMPDIR)/$(PROJNAME).elf: $(TMPDIR)/core.a $(TMPDIR)/core/syscalls_sam3.c.o $(MYOBJFILES) 
-	$(CXX) -Os -Wl,--gc-sections -mcpu=cortex-m3 -T$(ADIR)/$(SAM)/variants/arduino_due_x/linker_scripts/gcc/flash.ld -Wl,-Map,$(NEWMAINFILE).map -o $@ -L$(TMPDIR) -lm -lgcc -mthumb -Wl,--cref -Wl,--check-sections -Wl,--gc-sections -Wl,--entry=Reset_Handler -Wl,--unresolved-symbols=report-all -Wl,--warn-common -Wl,--warn-section-align -Wl,--warn-unresolved-symbols -Wl,--start-group $(TMPDIR)/core/syscalls_sam3.c.o $(MYOBJFILES) $(ADIR)/$(SAM)/variants/arduino_due_x/libsam_sam3x8e_gcc_rel.a $(TMPDIR)/core.a -Wl,--end-group
+# create the external libraries as one library
+$(TMPDIR)/libarduino.a: $(TMPDIR)/libraries $(ARDUINOOBJS)
+	$(AR) rcs $(TMPDIR)/libarduino.a $(ARDUINOOBJS)
 
-#copy from the hex to our bin file (why?)
+#link our own object files with core and the external libraries to form the elf file
+$(TMPDIR)/$(PROJNAME).elf: $(TMPDIR)/core.a $(TMPDIR)/core/syscalls_sam3.c.o $(MYOBJFILES) $(TMPDIR)/libarduino.a 
+	$(CXX) -Os -Wl,--gc-sections -mcpu=cortex-m3 -T$(ADIR)/$(SAM)/variants/arduino_due_x/linker_scripts/gcc/flash.ld -Wl,-Map,$(NEWMAINFILE).map -o $@ -L$(TMPDIR) -lm -lgcc -mthumb -Wl,--cref -Wl,--check-sections -Wl,--gc-sections -Wl,--entry=Reset_Handler -Wl,--unresolved-symbols=report-all -Wl,--warn-common -Wl,--warn-section-align -Wl,--warn-unresolved-symbols -Wl,--start-group $(TMPDIR)/core/syscalls_sam3.c.o $(MYOBJFILES) $(ADIR)/$(SAM)/variants/arduino_due_x/libsam_sam3x8e_gcc_rel.a $(TMPDIR)/core.a -Wl,--end-group -larduino
+
+# strip all debug symbols and create the much smaller bin file
 $(TMPDIR)/$(PROJNAME).bin: $(TMPDIR)/$(PROJNAME).elf 
 	$(ADIR)/tools/arm-none-eabi/bin/arm-none-eabi-objcopy -O binary $< $@
 

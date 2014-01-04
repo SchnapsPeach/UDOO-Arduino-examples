@@ -18,7 +18,7 @@
 
 #define ARDUINO_MAIN
 #include "Arduino.h"
-#include <Bounce/Bounce.h>
+#include <Bounce.h>
 
 /*
  * Cortex-M3 Systick IT handler
