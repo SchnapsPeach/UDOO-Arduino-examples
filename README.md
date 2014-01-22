@@ -25,3 +25,7 @@ UDOO-Arduino-examples
   <dt>make test</dt>
   <dd>builds the project, uploads is to arduino and starts the minicom session ;)</dd>
 </dl>
+
+
+[![Bitdeli Badge](https://d2weczhvl823v0.cloudfront.net/SchnapsPeach/udoo-arduino-examples/trend.png)](https://bitdeli.com/free "Bitdeli Badge")
+
